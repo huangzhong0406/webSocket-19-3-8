@@ -29,6 +29,17 @@ class Sock{
         $this->sockets=array($this->master);
     }
     
+    //传相应的IP与端口进行创建socket操作
+    function WebSocket($address,$port){
+        $server = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        socket_set_option($server, SOL_SOCKET, SO_REUSEADDR, 1);//1表示接受所有的数据包
+        socket_bind($server, $address, $port);
+        socket_listen($server);
+        $this->e('Server Started : '.date('Y-m-d H:i:s'));
+        $this->e('Listening on   : '.$address.' port '.$port);
+        return $server;
+    }
+    
     //对创建的socket循环进行监听，处理数据
     function run(){
         //死循环，直到socket断开
@@ -63,7 +74,7 @@ class Sock{
                     $this->sockets[]=$client;  //将新连接进来的socket存进连接池
                     $this->users[$key]=array(
                         'socket'=>$client,  //记录新连接进来client的socket信息
-                        'shou'=>false       //标志该socket资源没有完成握手
+                        'is_handshake'=>false       //标志该socket资源没有完成握手
                     );
                     //否则1.为client断开socket连接，2.client发送信息
                 }else{
@@ -86,9 +97,9 @@ class Sock{
                         continue;
                     }
                     //判断该socket是否已经握手
-                    if(!$this->users[$k]['shou']){
+                    if(!$this->users[$k]['is_handshake']){
                         //如果没有握手，则进行握手处理
-                        $this->woshou($k,$buffer);
+                        $this->handshake($k,$buffer);
                     }else{
                         //走到这里就是该client发送信息了，对接受到的信息进行uncode处理
                         $buffer = $this->uncode($buffer,$k);
@@ -129,24 +140,13 @@ class Sock{
         return false;
     }
     
-    //传相应的IP与端口进行创建socket操作
-    function WebSocket($address,$port){
-        $server = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        socket_set_option($server, SOL_SOCKET, SO_REUSEADDR, 1);//1表示接受所有的数据包
-        socket_bind($server, $address, $port);
-        socket_listen($server);
-        $this->e('Server Started : '.date('Y-m-d H:i:s'));
-        $this->e('Listening on   : '.$address.' port '.$port);
-        return $server;
-    }
-    
     
     /*
     * 函数说明：对client的请求进行回应，即握手操作
     * @$k clien的socket对应的健，即每个用户有唯一$k并对应socket
     * @$buffer 接收client请求的所有信息
     */
-    function woshou($k,$buffer){
+    function handshake($k,$buffer){
         
         //截取Sec-WebSocket-Key的值并加密，其中$key后面的一部分258EAFA5-E914-47DA-95CA-C5AB0DC85B11字符串应该是固定的
         $buf  = substr($buffer,strpos($buffer,'Sec-WebSocket-Key:')+18);
@@ -162,7 +162,7 @@ class Sock{
         socket_write($this->users[$k]['socket'],$new_message,strlen($new_message));
         
         //对已经握手的client做标志
-        $this->users[$k]['shou']=true;
+        $this->users[$k]['is_handshake']=true;
         return true;
         
     }
@@ -320,6 +320,10 @@ class Sock{
     
     //记录日志
     function e($str){
+        if(is_array($str)){
+            print_r($str);
+            return;
+        }
         //$path=dirname(__FILE__).'/log.txt';
         $str=$str."\n";
         //error_log($str,3,$path);

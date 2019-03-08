@@ -118,7 +118,7 @@
                         delete users[da.nrong];
                     }else{
                         da.nrong=da.nrong.replace(/{\\(\d+)}/g,function(a,b){
-                            return '<img src="sk/'+b+'.gif">';
+                            return '<img src="http://www.yxsss.com/ui/sk/'+b+'.gif">';
                         }).replace(/^data\:image\/png;base64\,.{50,}$/i,function(a){
                             return '<img src="'+a+'">';
                         });
@@ -186,7 +186,7 @@
 
         var bq=A.$('imgbq'),ems=A.$('ems');
         var l=80,r=4,c=5,s=0,p=Math.ceil(l/(r*c));
-        var pt='sk/';
+        var pt='http://www.yxsss.com/ui/sk/';
         bq.onclick=function(e){
             var e=e||event;
             if(!so){
